@@ -37,10 +37,32 @@ public class ShoulderMove : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-	
+
+		// Vector from Hand to Target
+		Vector3 handToTarget = target.position - hand.position;
+
+		// Vector3.right is the x-axis
+		phi = Vector3.Angle (Vector3.right, handToTarget);
+
+		// Vector3.forward is the z axis
+		theta = Vector3.Angle (Vector3.forward, handToTarget);
+
+		// Again, distance between hand and target
+		rho = Vector3.Distance (hand.position, target.position);
 	}
 
-	void jacobianCalculation(float phi, float theta, float rho) {
+	void jacobianCalculation(float rho, float theta, float phi) {
+
+		// We will compute every value in the Matrix individually below
+		jacobian [0, 0] = Mathf.Sin (theta) * Mathf.Cos (phi);
+		jacobian [0, 1] = rho * Mathf.Cos (theta) * Mathf.Cos (phi);
+		jacobian [0, 2] = -rho * Mathf.Sin (theta) * Mathf.Sin (phi);
+		jacobian [1,0] = Mathf.Sin(theta) * Mathf.Sin (phi);
+		jacobian [1,1] = rho * Mathf.Cos(theta) * Mathf.Sin (phi);
+		jacobian [1,2] = rho * Mathf.Sin(theta) * Mathf.Cos(phi);
+		jacobian [2,0] = Mathf.Cos(theta);
+		jacobian [2,1] = -rho * Mathf.Sin (theta);
+		jacobian [2,2] = 0;
 
 	}
 	
