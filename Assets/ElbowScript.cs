@@ -6,10 +6,10 @@ public class ElbowScript : MonoBehaviour {
 	// The elbow has only one degree of freedom
 	// so only one rotation axis is needed
 	public float yRot;
-
+	public float zRot;
 	// Min and max rotation for the elbow
 	public float yMin, yMax;
-
+	public float zMin, zMax;
 	// Rotation Speed
 	public float rotSpeed;
 
@@ -30,7 +30,17 @@ public class ElbowScript : MonoBehaviour {
 			yRot -= rotSpeed;
 		}
 
+		if(Input.GetKey(KeyCode.C)) {
+			Debug.Log("Rotating Elbow over Z Positively");
+			zRot += rotSpeed;
+		}
+		
+		if(Input.GetKey(KeyCode.V)) {
+			Debug.Log("Rotating Elbow over Z Negatively");
+			zRot -= rotSpeed;
+		}
 		yRot = Mathf.Clamp(yRot, yMin, yMax);
-		gameObject.transform.localEulerAngles = new Vector3(transform.localEulerAngles.x, yRot, transform.localEulerAngles.z);
+		zRot = Mathf.Clamp(zRot, zMin, zMax);
+		gameObject.transform.localEulerAngles = new Vector3(transform.localEulerAngles.x, yRot, zRot);
 	}
 }
