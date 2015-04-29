@@ -69,10 +69,6 @@ public class ShoulderMove : MonoBehaviour {
 		jacobian [2,1] = -rho * Mathf.Sin (theta);
 		jacobian [2,2] = 0;
 	}
-
-	float determinantCalculator() {
-
-	}
 	
 	// Update is called once per frame
 	void Update () {
