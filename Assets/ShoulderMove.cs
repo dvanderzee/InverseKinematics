@@ -2,7 +2,7 @@
 using System.Collections;
 
 public class ShoulderMove : MonoBehaviour {
-
+	
 	// These floats will represent the Shoulder's
 	// rotation in 3D space. They are public so 
 	// they can be changed in the editor. The 
@@ -19,11 +19,28 @@ public class ShoulderMove : MonoBehaviour {
 	public float yMin, yMax;
 	public float zMin, zMax;
 
+	// Target for the end affector
+	public Transform elbow;
+	public Transform hand;
+	public Transform target;
+
+	// Values to be used in computing Jacobian Inverse
+	public float phi;	// Angle between line from origin to target and x axis
+	public float theta;	// Angle between line from origin to target and z-axis
+	public float rho;	// Distance between origin and target
+
+	// Matrix to hold our Jacobian Values
+	float[,] jacobian = new float[3,3];
+
 	// Speed at which objects are manually rotated
 	public float rotSpeed;
 
 	// Use this for initialization
 	void Start () {
+	
+	}
+
+	void jacobianCalculation(float phi, float theta, float rho) {
 
 	}
 	
