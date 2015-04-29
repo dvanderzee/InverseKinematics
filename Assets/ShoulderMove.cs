@@ -35,6 +35,9 @@ public class ShoulderMove : MonoBehaviour {
 	// Speed at which objects are manually rotated
 	public float rotSpeed;
 
+	// Determinant used in inverting the matrix
+	private float determinant;
+
 	// Use this for initialization
 	void Start () {
 
@@ -49,6 +52,8 @@ public class ShoulderMove : MonoBehaviour {
 
 		// Again, distance between hand and target
 		rho = Vector3.Distance (hand.position, target.position);
+
+		jacobianCalculation (rho, theta, phi);
 	}
 
 	void jacobianCalculation(float rho, float theta, float phi) {
@@ -63,6 +68,9 @@ public class ShoulderMove : MonoBehaviour {
 		jacobian [2,0] = Mathf.Cos(theta);
 		jacobian [2,1] = -rho * Mathf.Sin (theta);
 		jacobian [2,2] = 0;
+	}
+
+	float determinantCalculator() {
 
 	}
 	
