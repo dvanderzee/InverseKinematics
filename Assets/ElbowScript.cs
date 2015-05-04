@@ -7,11 +7,9 @@ public class ElbowScript : MonoBehaviour {
 	// so only one rotation axis is needed
 	public float xRot;
 	public float zRot;
-	public float yRot;
 	// Min and max rotation for the elbow
 	public float xMin, xMax;
 	public float zMin, zMax;
-	public float yMin, yMax;
 	// Rotation Speed
 	public float rotSpeed;
 
@@ -23,13 +21,13 @@ public class ElbowScript : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 		if(Input.GetKey(KeyCode.Z)) {
-			Debug.Log("Rotating Elbow over Y Positively");
-			yRot += rotSpeed;
+			Debug.Log("Rotating Elbow over X Positively");
+			xRot += rotSpeed;
 		}
 
 		if(Input.GetKey(KeyCode.X)) {
-			Debug.Log("Rotating Elbow over Y Negatively");
-			yRot -= rotSpeed;
+			Debug.Log("Rotating Elbow over X Negatively");
+			xRot -= rotSpeed;
 		}
 
 		if(Input.GetKey(KeyCode.C)) {
@@ -41,8 +39,8 @@ public class ElbowScript : MonoBehaviour {
 			Debug.Log("Rotating Elbow over Z Negatively");
 			zRot -= rotSpeed;
 		}
-		yRot = Mathf.Clamp(yRot, yMin, yMax);
+		xRot = Mathf.Clamp(xRot, xMin, xMax);
 		zRot = Mathf.Clamp(zRot, zMin, zMax);
-		gameObject.transform.localEulerAngles = new Vector3(transform.eulerAngles.x, yRot, zRot);
+		gameObject.transform.localEulerAngles = new Vector3(xRot, transform.eulerAngles.y, zRot);
 	}
 }
