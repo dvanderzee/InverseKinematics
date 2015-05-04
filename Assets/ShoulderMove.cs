@@ -29,8 +29,10 @@ public class ShoulderMove : MonoBehaviour {
 	public float theta;	// Angle between line from origin to target and z-axis
 	public float rho;	// Distance between origin and target
 
-	// Matrix to hold our Jacobian Values
+	// Matrices to hold our Jacobian Values and it's Adjacency Matrix
 	float[,] jacobian = new float[3,3];
+	float[,] adj = new float[3, 3];
+	float[,] inv = new float[3, 3];
 
 	// Speed at which objects are manually rotated
 	public float rotSpeed;
@@ -54,6 +56,7 @@ public class ShoulderMove : MonoBehaviour {
 		rho = Vector3.Distance (hand.position, target.position);
 
 		jacobianCalculation (rho, theta, phi);
+		jacobianInverse ();
 	}
 
 	void jacobianCalculation(float rho, float theta, float phi) {
@@ -68,6 +71,48 @@ public class ShoulderMove : MonoBehaviour {
 		jacobian [2,0] = Mathf.Cos(theta);
 		jacobian [2,1] = -rho * Mathf.Sin (theta);
 		jacobian [2,2] = 0;
+	}
+
+	void jacobianInverse(){
+
+		// Some assignments to make readibility easier
+		float a11, a12, a13, a21, a22, a23, a31, a32, a33;
+		a11 = jacobian [0, 0];
+		a12 = jacobian [0, 1];
+		a13 = jacobian [0, 2];
+		a21 = jacobian [1, 0];
+		a22 = jacobian [1, 1];
+		a23 = jacobian [1, 2];
+		a31 = jacobian [2, 0];
+		a32 = jacobian [2, 1];
+		a33 = jacobian [2, 2];
+
+		// We first find the determinant of the Jacobian
+		determinant = (a11 * ((a33 * a22) - (a32 * a23)))
+			- (a21 * ((a33 * a12) - (a32 * a13)))
+			+ (a31 * ((a23 * a12) - (a22 * a13)));
+
+		// We then calculate the adjacency matrix
+		adj [0, 0] = ((a33 * a22) - (a32 * a23));
+		adj [0, 1] = -((a33 * a12) - (a32 * a13));
+		adj [0, 2] = ((a23 * a12) - (a22 * a13));
+		adj [1, 0] = -((a33 * a21) - (a31 * a23));
+		adj [1, 1] = ((a33 * a11) - (a31 * a13));
+		adj [1, 2] = -((a23 * a11) - (a21 * a13));
+		adj [2, 0] = ((a32 * a21) - (a31 * a22));
+		adj [2, 1] = -((a32 * a11) - (a31 * a31));
+		adj [2, 2] = ((a22 * a11) - (a21 * a12));
+
+		// Now we calculate each cell of the inverse
+		inv [0, 0] = adj [0, 0] / determinant;
+		inv [0, 1] = adj [0, 0] / determinant;
+		inv [0, 2] = adj [0, 0] / determinant;
+		inv [1, 0] = adj [0, 0] / determinant;
+		inv [1, 1] = adj [0, 0] / determinant;
+		inv [1, 2] = adj [0, 0] / determinant;
+		inv [2, 0] = adj [0, 0] / determinant;
+		inv [2, 1] = adj [0, 0] / determinant;
+		inv [2, 2] = adj [0, 0] / determinant;
 	}
 	
 	// Update is called once per frame
