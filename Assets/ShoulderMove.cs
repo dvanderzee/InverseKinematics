@@ -122,39 +122,44 @@ public class ShoulderMove : MonoBehaviour {
 		if(Input.GetKey(KeyCode.A)) {
 			Debug.Log("Rotating Shoulder over X Positively");
 			xRot += rotSpeed;
+			xRot = Mathf.Clamp(xRot, xMin, xMax);
+			transform.rotation = Quaternion.Euler(xRot, 0, 0);
 		}
 
 		if(Input.GetKey(KeyCode.S)) {
 			Debug.Log("Rotating Shoulder over Y Positively");
 			yRot += rotSpeed;
+			yRot = Mathf.Clamp(yRot, yMin, yMax);
+			transform.rotation = Quaternion.Euler(0, yRot, 0);
 		}
 
 		if(Input.GetKey(KeyCode.D)) {
 			Debug.Log("Rotating Shoulder over Z Positively");
 			zRot += rotSpeed;
+			zRot = Mathf.Clamp(zRot, zMin, zMax);
+			transform.rotation = Quaternion.Euler(0, 0, zRot);
 		}
 
 		if(Input.GetKey(KeyCode.Q)) {
 			Debug.Log("Rotating Shoulder over X Negatively");
 			xRot -= rotSpeed;
+			xRot = Mathf.Clamp(xRot, xMin, xMax);
+			transform.rotation = Quaternion.Euler(xRot, 0, 0);
 		}
 		
 		if(Input.GetKey(KeyCode.W)) {
 			Debug.Log("Rotating Shoulder over Y Negatively");
 			yRot -= rotSpeed;
+			yRot = Mathf.Clamp(yRot, yMin, yMax);
+			transform.rotation = Quaternion.Euler(0, yRot, 0);
 		}
 		
 		if(Input.GetKey(KeyCode.E)) {
 			Debug.Log("Rotating Shoulder over Z Negatively");
 			zRot -= rotSpeed;
+			zRot = Mathf.Clamp(zRot, zMin, zMax);
+			transform.rotation = Quaternion.Euler(0, 0, zRot);
 		}
 
-		// Clamping controls
-		xRot = Mathf.Clamp(xRot, xMin, xMax);
-		yRot = Mathf.Clamp(yRot, yMin, yMax);
-		zRot = Mathf.Clamp(zRot, zMin, zMax);
-
-		// Actual rotation command;
-		transform.localEulerAngles = new Vector3(xRot, yRot, zRot);
 	}
 }
