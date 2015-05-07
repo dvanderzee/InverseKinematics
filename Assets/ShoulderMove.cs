@@ -30,15 +30,18 @@ public class ShoulderMove : MonoBehaviour {
 	public float rho;	// Distance between origin and target
 
 	// Matrices to hold our Jacobian Values and it's Adjacency Matrix
-	float[,] jacobian = new float[3,3];
-	float[,] adj = new float[3, 3];
-	float[,] inv = new float[3, 3];
+	float[,] jacobian = new float[3, 2];
+	float[,] adj = new float[3, 2];
+	float[,] inv = new float[3, 2];
 
 	// Speed at which objects are manually rotated
 	public float rotSpeed;
 
 	// Determinant used in inverting the matrix
 	private float determinant;
+
+	public GameObject elbowObject;
+	public float elbowX, elbowY, elbowZ;
 
 	// Use this for initialization
 	void Start () {
@@ -55,26 +58,60 @@ public class ShoulderMove : MonoBehaviour {
 		// Again, distance between hand and target
 		rho = Vector3.Distance (hand.position, target.position);
 
-		jacobianCalculation (rho, theta, phi);
-		jacobianInverse ();
+		elbowObject = GameObject.Find ("Elbow");
+		ElbowScript elbowscript = elbowObject.GetComponent<ElbowScript> ();
+		elbowX = elbowscript.xRot;
+		elbowY = elbowscript.yRot;
+		elbowZ = elbowscript.zRot;
+
 	}
 
-	void jacobianCalculation(float rho, float theta, float phi) {
+	// (Axis of Revolution) X (Vector from joint to end effector)
+	void jacobianCalculation() {
+		Vector3 shoulderAxis;		// Axis of Revolution for Shoulder
+		Vector3 elbowAxis;			// Axis of Revolution for Elbow
 
-		// We will compute every value in the Matrix individually below
-		jacobian [0, 0] = Mathf.Sin (theta) * Mathf.Cos (phi);
-		jacobian [0, 1] = rho * Mathf.Cos (theta) * Mathf.Cos (phi);
-		jacobian [0, 2] = -rho * Mathf.Sin (theta) * Mathf.Sin (phi);
-		jacobian [1,0] = Mathf.Sin(theta) * Mathf.Sin (phi);
-		jacobian [1,1] = rho * Mathf.Cos(theta) * Mathf.Sin (phi);
-		jacobian [1,2] = rho * Mathf.Sin(theta) * Mathf.Cos(phi);
-		jacobian [2,0] = Mathf.Cos(theta);
-		jacobian [2,1] = -rho * Mathf.Sin (theta);
-		jacobian [2,2] = 0;
+		Vector3 shoulderRot = new Vector3 (xRot, yRot, zRot);		// Current Rotation Vector for Shoulder
+		Vector3 elbowRot = new Vector3 (elbowX, elbowY, elbowZ);	// Current Rotation Vector for Elbow
+
+		float shoulderRotMag = 	// Magnitude of the Shoulder Rotation
+			Mathf.Sqrt (Mathf.Pow (xRot, xRot) + Mathf.Pow (yRot, yRot) + Mathf.Pow (zRot, zRot));
+		float elbowRotMag = 	// Magnitude of the Elbow Rotation
+			Mathf.Sqrt (Mathf.Pow (elbowX, elbowX) + Mathf.Pow (elbowY, elbowY) + Mathf.Pow (elbowZ, elbowZ));
+
+		shoulderAxis = (shoulderRot / shoulderRotMag);
+		elbowAxis = (elbowRot / elbowRotMag);
+
+		Vector3 shoulderDist = (hand.transform.position - transform.position);		// Vector from Shoulder to Hand
+		Vector3 elbowDist = (hand.transform.position - elbow.transform.position);	// Vector from Elbow to Hand
+
+		Vector3 shoulderCol = Vector3.Cross(shoulderAxis, shoulderDist);			// Final Result for Shoulder
+		Vector3 elbowCol = Vector3.Cross(elbowAxis, elbowDist);						// Final Result for Elbow
+
+		// Entries into the Jacobian
+		jacobian [0, 0] = shoulderCol.x;
+		jacobian [1, 0] = shoulderCol.y;
+		jacobian [2, 0] = shoulderCol.z;
+		jacobian [0, 1] = elbowAxis.x;
+		jacobian [1, 1] = elbowAxis.y;
+		jacobian [2, 1] = elbowAxis.z;
+
+	}
+
+	void pseudoInverse() {
+		float[,] transpose = new float[2, 3];
+
+		transpose [0, 0] = jacobian [0, 0];
+		transpose [0, 1] = jacobian [1, 0];
+		transpose [0, 2] = jacobian [2, 0];
+		transpose [1, 0] = jacobian [0, 1];
+		transpose [1, 1] = jacobian [1, 1];
+		transpose [1, 2] = jacobian [2, 1];
+	
 	}
 
 	void jacobianInverse(){
-
+		/*
 		// Some assignments to make readibility easier
 		float a11, a12, a13, a21, a22, a23, a31, a32, a33;
 		a11 = jacobian [0, 0];
@@ -113,6 +150,7 @@ public class ShoulderMove : MonoBehaviour {
 		inv [2, 0] = adj [0, 0] / determinant;
 		inv [2, 1] = adj [0, 0] / determinant;
 		inv [2, 2] = adj [0, 0] / determinant;
+		*/
 	}
 	
 	// Update is called once per frame
