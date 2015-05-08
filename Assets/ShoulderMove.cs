@@ -2,7 +2,13 @@
 using System.Collections;
 
 public class ShoulderMove : MonoBehaviour {
-	
+
+	//DELETE ME LATER. USED TO TEST FOR CERTAIN AMOUNTS OF TIME
+	int doJacXTimes = 0;
+
+
+
+
 	// These floats will represent the Shoulder's
 	// rotation in 3D space. They are public so 
 	// they can be changed in the editor. The 
@@ -42,7 +48,7 @@ public class ShoulderMove : MonoBehaviour {
 	private float determinant;
 
 	// Minimum Distance required to stop moving arm
-	public float minDistance = 2;
+	public float minDistance = 2f;
 
 	// Boolean to keep calculating new Joints
 	public bool done = false;
@@ -54,7 +60,7 @@ public class ShoulderMove : MonoBehaviour {
 	Vector3 elbowAxis;			// Axis of Revolution for Elbow
 	ElbowScript elbowscript;
 
-	public float step = .05f;
+	public float step = 3f;
 
 	// Use this for initialization
 	void Start () {
@@ -107,6 +113,11 @@ public class ShoulderMove : MonoBehaviour {
 		jacobian [1, 1] = elbowAxis.y;
 		jacobian [2, 1] = elbowAxis.z;
 
+
+		Debug.Log("Jacobian is:");
+		Debug.Log("Col 1: " + jacobian[0,0] + " " + jacobian[1,0] + " " + jacobian[2,0]);
+		Debug.Log("Col 2: " + jacobian[0,1] + " " + jacobian[1,1] + " " + jacobian[2,1]);
+
 	}
 	// PsuedoInverse = Inverse(Transpose * Jacobian) * Transpose
 	void pseudoInverse() {
@@ -140,6 +151,12 @@ public class ShoulderMove : MonoBehaviour {
 		psuedo [1, 1] = (tempinv [1, 0] * transpose [0, 1]) + (tempinv [1, 1] * transpose [1, 1]);
 		psuedo [1, 2] = (tempinv [1, 0] * transpose [0, 2]) + (tempinv [1, 1] * transpose [1, 2]);
 
+
+
+		Debug.Log("Jacobian Inverse is:");
+		Debug.Log("Row 1: " + psuedo[0,0] + " " + psuedo[0,1] + " " + psuedo[0,2]);
+		Debug.Log("Row 2: " + psuedo[1,0] + " " + psuedo[1,1] + " " + psuedo[1,2]);
+
 	}
 
 	void computeNewJoints() {
@@ -153,16 +170,19 @@ public class ShoulderMove : MonoBehaviour {
 		deltaTheta [0, 0] = (psuedo [0, 0] * deltaTranslation.x) + (psuedo [0, 1] * deltaTranslation.y) + (psuedo [0, 2] * deltaTranslation.z);
 		deltaTheta [1, 0] = (psuedo [1, 0] * deltaTranslation.x) + (psuedo [1, 1] * deltaTranslation.y) + (psuedo [1, 2] * deltaTranslation.z);
 	
-		shoulderAxis *= (deltaTheta [0, 0] * step);
-		elbowAxis *= (deltaTheta [1, 0] * step);
+		//shoulderAxis *= (deltaTheta [0, 0] * step);
+		//elbowAxis *= (deltaTheta [1, 0] * step);
 
-		xRot += shoulderAxis.x;
-		yRot += shoulderAxis.y;
-		zRot += shoulderAxis.z;
 
-		elbowscript.xRot += elbowAxis.x;
-		elbowscript.yRot += elbowAxis.y;
-		elbowscript.zRot += elbowAxis.z;
+		xRot += (deltaTheta [0, 0] * step);
+		yRot += (deltaTheta [0, 0] * step);
+		zRot += (deltaTheta [0, 0] * step);
+
+		elbowscript.xRot += (deltaTheta [1, 0] * step);
+		elbowscript.yRot += (deltaTheta [1, 0] * step);
+		elbowscript.zRot += (deltaTheta [1, 0] * step);
+
+
 
 	}
 
@@ -216,6 +236,29 @@ public class ShoulderMove : MonoBehaviour {
 			jacobianCalculation ();
 			pseudoInverse();
 			computeNewJoints();
+
+
+			xRot = Mathf.Clamp(xRot, xMin, xMax);
+			yRot = Mathf.Clamp(yRot, yMin, yMax);
+			zRot = Mathf.Clamp(zRot, zMin, zMax);
+
+			elbowscript.xRot = Mathf.Clamp(elbowscript.xRot, elbowscript.xMin, elbowscript.xMax);
+			elbowscript.yRot = Mathf.Clamp(elbowscript.yRot, elbowscript.yMin, elbowscript.yMax);
+			elbowscript.zRot = Mathf.Clamp(elbowscript.zRot, elbowscript.zMin, elbowscript.zMax);
+
+			Debug.Log("Shoulder Rotations: " + xRot + " " + yRot + " " + zRot);
+			Debug.Log("Elbow Rotations: " + elbowscript.xRot + " " + elbowscript.yRot + " " + elbowscript.zRot);
+
+			transform.rotation = Quaternion.Euler(xRot,yRot,zRot);
+			elbow.transform.rotation = Quaternion.Euler(elbowscript.xRot, elbowscript.yRot, elbowscript.zRot);
+
+			if(doJacXTimes > 300){
+				done = true;
+			}
+			else {
+				doJacXTimes++;
+			}
+
 		}
 	
 		// Manual Rotation Controls
