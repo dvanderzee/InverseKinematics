@@ -33,6 +33,7 @@ public class ShoulderMove : MonoBehaviour {
 	float[,] jacobian = new float[3, 2];
 	float[,] adj = new float[3, 2];
 	float[,] inv = new float[3, 2];
+	float[,] psuedo = new float[2, 3];
 
 	// Speed at which objects are manually rotated
 	public float rotSpeed;
@@ -40,8 +41,20 @@ public class ShoulderMove : MonoBehaviour {
 	// Determinant used in inverting the matrix
 	private float determinant;
 
+	// Minimum Distance required to stop moving arm
+	public float minDistance = 2;
+
+	// Boolean to keep calculating new Joints
+	public bool done = false;
+
 	public GameObject elbowObject;
 	public float elbowX, elbowY, elbowZ;
+
+	Vector3 shoulderAxis;		// Axis of Revolution for Shoulder
+	Vector3 elbowAxis;			// Axis of Revolution for Elbow
+	ElbowScript elbowscript;
+
+	public float step = .05f;
 
 	// Use this for initialization
 	void Start () {
@@ -59,7 +72,7 @@ public class ShoulderMove : MonoBehaviour {
 		rho = Vector3.Distance (hand.position, target.position);
 
 		elbowObject = GameObject.Find ("Elbow");
-		ElbowScript elbowscript = elbowObject.GetComponent<ElbowScript> ();
+		elbowscript = elbowObject.GetComponent<ElbowScript> ();
 		elbowX = elbowscript.xRot;
 		elbowY = elbowscript.yRot;
 		elbowZ = elbowscript.zRot;
@@ -68,8 +81,6 @@ public class ShoulderMove : MonoBehaviour {
 
 	// (Axis of Revolution) X (Vector from joint to end effector)
 	void jacobianCalculation() {
-		Vector3 shoulderAxis;		// Axis of Revolution for Shoulder
-		Vector3 elbowAxis;			// Axis of Revolution for Elbow
 
 		Vector3 shoulderRot = new Vector3 (xRot, yRot, zRot);		// Current Rotation Vector for Shoulder
 		Vector3 elbowRot = new Vector3 (elbowX, elbowY, elbowZ);	// Current Rotation Vector for Elbow
@@ -97,7 +108,7 @@ public class ShoulderMove : MonoBehaviour {
 		jacobian [2, 1] = elbowAxis.z;
 
 	}
-
+	// PsuedoInverse = Inverse(Transpose * Jacobian) * Transpose
 	void pseudoInverse() {
 		float[,] transpose = new float[2, 3];
 
@@ -108,6 +119,51 @@ public class ShoulderMove : MonoBehaviour {
 		transpose [1, 1] = jacobian [1, 1];
 		transpose [1, 2] = jacobian [2, 1];
 	
+		float[,] temp = new float[2, 2];
+		float[,] tempinv = new float[2, 2];
+
+		temp [0, 0] = (transpose [0, 0] * jacobian [0, 0]) + (transpose [0, 1] * jacobian [1, 0]) + (transpose [0, 2] * jacobian [2, 0]);
+		temp [0, 1] = (transpose [0, 0] * jacobian [0, 1]) + (transpose [0, 1] * jacobian [1, 1]) + (transpose [0, 2] * jacobian [2, 1]);
+		temp [1, 0] = (transpose [1, 0] * jacobian [0, 0]) + (transpose [1, 1] * jacobian [1, 0]) + (transpose [1, 2] * jacobian [2, 0]);
+		temp [1, 1] = (transpose [1, 0] * jacobian [0, 1]) + (transpose [1, 1] * jacobian [1, 1]) + (transpose [1, 2] * jacobian [2, 1]);
+
+		float determinant = (temp [0, 0] * temp [1, 1]) - (temp [0, 1] * temp [1, 0]);
+		tempinv [0, 0] = temp [1, 1] / determinant;
+		tempinv [0, 1] = -temp [0, 1] / determinant;
+		tempinv [1, 0] = -temp [1, 0] / determinant;
+		tempinv [1, 1] = temp [0, 0] / determinant;
+
+		psuedo [0, 0] = (tempinv [0, 0] * transpose [0, 0]) + (tempinv [0, 1] * transpose [1, 0]);
+		psuedo [0, 1] = (tempinv [0, 0] * transpose [0, 1]) + (tempinv [0, 1] * transpose [1, 1]);
+		psuedo [0, 2] = (tempinv [0, 0] * transpose [0, 2]) + (tempinv [0, 1] * transpose [1, 2]);
+		psuedo [1, 0] = (tempinv [1, 0] * transpose [0, 0]) + (tempinv [1, 1] * transpose [1, 0]);
+		psuedo [1, 1] = (tempinv [1, 0] * transpose [0, 1]) + (tempinv [1, 1] * transpose [1, 1]);
+		psuedo [1, 2] = (tempinv [1, 0] * transpose [0, 2]) + (tempinv [1, 1] * transpose [1, 2]);
+
+	}
+
+	void computeNewJoints() {
+		Vector3 deltaTranslation = target.transform.position - hand.transform.position;
+		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
+			done = true;
+		}
+
+		// Change in DOF
+		float[,] deltaTheta = new float[2, 1];
+		deltaTheta [0, 0] = (psuedo [0, 0] * deltaTranslation.x) + (psuedo [0, 1] * deltaTranslation.y) + (psuedo [0, 2] * deltaTranslation.z);
+		deltaTheta [1, 0] = (psuedo [1, 0] * deltaTranslation.x) + (psuedo [1, 1] * deltaTranslation.y) + (psuedo [1, 2] * deltaTranslation.z);
+	
+		shoulderAxis *= (deltaTheta [0, 0] * step);
+		elbowAxis *= (deltaTheta [1, 0] * step);
+
+		xRot += shoulderAxis.x;
+		yRot += shoulderAxis.y;
+		zRot += shoulderAxis.z;
+
+		elbowscript.xRot += elbowAxis.x;
+		elbowscript.yRot += elbowAxis.y;
+		elbowscript.zRot += elbowAxis.z;
+
 	}
 
 	void jacobianInverse(){
@@ -155,6 +211,12 @@ public class ShoulderMove : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+
+		while (done == false) {
+			jacobianCalculation ();
+			pseudoInverse();
+			computeNewJoints();
+		}
 	
 		// Manual Rotation Controls
 		if(Input.GetKey(KeyCode.A)) {
