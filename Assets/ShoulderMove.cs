@@ -48,7 +48,7 @@ public class ShoulderMove : MonoBehaviour {
 	private float determinant;
 
 	// Minimum Distance required to stop moving arm
-	public float minDistance = 2f;
+	public float minDistance;
 
 	// Boolean to keep calculating new Joints
 	public bool done = false;
@@ -60,7 +60,7 @@ public class ShoulderMove : MonoBehaviour {
 	Vector3 elbowAxis;			// Axis of Revolution for Elbow
 	ElbowScript elbowscript;
 
-	public float step = 3f;
+	public float step;
 
 	// Use this for initialization
 	void Start () {
@@ -79,22 +79,24 @@ public class ShoulderMove : MonoBehaviour {
 
 		elbowObject = GameObject.Find ("Elbow");
 		elbowscript = elbowObject.GetComponent<ElbowScript> ();
-		elbowX = elbowscript.xRot;
-		elbowY = elbowscript.yRot;
-		elbowZ = elbowscript.zRot;
 
 	}
 
 	// (Axis of Revolution) X (Vector from joint to end effector)
 	void jacobianCalculation() {
 
+		elbowX = elbowscript.xRot;
+		elbowY = elbowscript.yRot;
+		elbowZ = elbowscript.zRot;
+
 		Vector3 shoulderRot = new Vector3 (xRot, yRot, zRot);		// Current Rotation Vector for Shoulder
 		Vector3 elbowRot = new Vector3 (elbowX, elbowY, elbowZ);	// Current Rotation Vector for Elbow
 
 		float shoulderRotMag = 	// Magnitude of the Shoulder Rotation
-			Mathf.Sqrt (Mathf.Pow (xRot, xRot) + Mathf.Pow (yRot, yRot) + Mathf.Pow (zRot, zRot));
+			Mathf.Sqrt (Mathf.Pow (xRot, 2) + Mathf.Pow (yRot, 2) + Mathf.Pow (zRot, 2));
 		float elbowRotMag = 	// Magnitude of the Elbow Rotation
-			Mathf.Sqrt (Mathf.Pow (elbowX, elbowX) + Mathf.Pow (elbowY, elbowY) + Mathf.Pow (elbowZ, elbowZ));
+			Mathf.Sqrt (Mathf.Pow (elbowX, 2) + Mathf.Pow (elbowY, 2) + Mathf.Pow (elbowZ, 2));
+
 
 		shoulderAxis = (shoulderRot / shoulderRotMag);
 		elbowAxis = (elbowRot / elbowRotMag);
@@ -162,6 +164,7 @@ public class ShoulderMove : MonoBehaviour {
 	void computeNewJoints() {
 		Vector3 deltaTranslation = target.transform.position - hand.transform.position;
 		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
+			Debug.Log("target distance: " + Vector3.Distance (target.transform.position, hand.transform.position));
 			done = true;
 		}
 
@@ -232,19 +235,19 @@ public class ShoulderMove : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-		while (done == false) {
+		if(done == false) {
 			jacobianCalculation ();
 			pseudoInverse();
 			computeNewJoints();
 
 
-			xRot = Mathf.Clamp(xRot, xMin, xMax);
-			yRot = Mathf.Clamp(yRot, yMin, yMax);
-			zRot = Mathf.Clamp(zRot, zMin, zMax);
+			//xRot = Mathf.Clamp(xRot, xMin, xMax);
+			//yRot = Mathf.Clamp(yRot, yMin, yMax);
+			//zRot = Mathf.Clamp(zRot, zMin, zMax);
 
-			elbowscript.xRot = Mathf.Clamp(elbowscript.xRot, elbowscript.xMin, elbowscript.xMax);
-			elbowscript.yRot = Mathf.Clamp(elbowscript.yRot, elbowscript.yMin, elbowscript.yMax);
-			elbowscript.zRot = Mathf.Clamp(elbowscript.zRot, elbowscript.zMin, elbowscript.zMax);
+			//elbowscript.xRot = Mathf.Clamp(elbowscript.xRot, elbowscript.xMin, elbowscript.xMax);
+			//elbowscript.yRot = Mathf.Clamp(elbowscript.yRot, elbowscript.yMin, elbowscript.yMax);
+			//elbowscript.zRot = Mathf.Clamp(elbowscript.zRot, elbowscript.zMin, elbowscript.zMax);
 
 			Debug.Log("Shoulder Rotations: " + xRot + " " + yRot + " " + zRot);
 			Debug.Log("Elbow Rotations: " + elbowscript.xRot + " " + elbowscript.yRot + " " + elbowscript.zRot);
@@ -252,12 +255,14 @@ public class ShoulderMove : MonoBehaviour {
 			transform.rotation = Quaternion.Euler(xRot,yRot,zRot);
 			elbow.transform.rotation = Quaternion.Euler(elbowscript.xRot, elbowscript.yRot, elbowscript.zRot);
 
+			/*
 			if(doJacXTimes > 300){
 				done = true;
 			}
 			else {
 				doJacXTimes++;
 			}
+			*/
 
 		}
 	
