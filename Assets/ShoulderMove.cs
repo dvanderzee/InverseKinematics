@@ -3,12 +3,6 @@ using System.Collections;
 
 public class ShoulderMove : MonoBehaviour {
 
-	//DELETE ME LATER. USED TO TEST FOR CERTAIN AMOUNTS OF TIME
-	int doJacXTimes = 0;
-
-
-
-
 	// These floats will represent the Shoulder's
 	// rotation in 3D space. They are public so 
 	// they can be changed in the editor. The 
@@ -30,15 +24,9 @@ public class ShoulderMove : MonoBehaviour {
 	public Transform hand;
 	public Transform target;
 
-	// Values to be used in computing Jacobian Inverse
-	public float phi;	// Angle between line from origin to target and x axis
-	public float theta;	// Angle between line from origin to target and z-axis
-	public float rho;	// Distance between origin and target
 
 	// Matrices to hold our Jacobian Values and it's Adjacency Matrix
 	float[,] jacobian = new float[3, 2];
-	float[,] adj = new float[3, 2];
-	float[,] inv = new float[3, 2];
 	float[,] psuedo = new float[2, 3];
 
 	// Speed at which objects are manually rotated
@@ -64,18 +52,6 @@ public class ShoulderMove : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-
-		// Vector from Hand to Target
-		Vector3 handToTarget = target.position - hand.position;
-
-		// Vector3.right is the x-axis
-		phi = Vector3.Angle (Vector3.right, handToTarget);
-
-		// Vector3.forward is the z axis
-		theta = Vector3.Angle (Vector3.forward, handToTarget);
-
-		// Again, distance between hand and target
-		rho = Vector3.Distance (hand.position, target.position);
 
 		elbowObject = GameObject.Find ("Elbow");
 		elbowscript = elbowObject.GetComponent<ElbowScript> ();
@@ -173,10 +149,6 @@ public class ShoulderMove : MonoBehaviour {
 		deltaTheta [0, 0] = (psuedo [0, 0] * deltaTranslation.x) + (psuedo [0, 1] * deltaTranslation.y) + (psuedo [0, 2] * deltaTranslation.z);
 		deltaTheta [1, 0] = (psuedo [1, 0] * deltaTranslation.x) + (psuedo [1, 1] * deltaTranslation.y) + (psuedo [1, 2] * deltaTranslation.z);
 	
-		//shoulderAxis *= (deltaTheta [0, 0] * step);
-		//elbowAxis *= (deltaTheta [1, 0] * step);
-
-
 		xRot += (deltaTheta [0, 0] * step);
 		yRot += (deltaTheta [0, 0] * step);
 		zRot += (deltaTheta [0, 0] * step);
@@ -184,54 +156,8 @@ public class ShoulderMove : MonoBehaviour {
 		elbowscript.xRot += (deltaTheta [1, 0] * step);
 		elbowscript.yRot += (deltaTheta [1, 0] * step);
 		elbowscript.zRot += (deltaTheta [1, 0] * step);
-
-
-
 	}
 
-	void jacobianInverse(){
-		/*
-		// Some assignments to make readibility easier
-		float a11, a12, a13, a21, a22, a23, a31, a32, a33;
-		a11 = jacobian [0, 0];
-		a12 = jacobian [0, 1];
-		a13 = jacobian [0, 2];
-		a21 = jacobian [1, 0];
-		a22 = jacobian [1, 1];
-		a23 = jacobian [1, 2];
-		a31 = jacobian [2, 0];
-		a32 = jacobian [2, 1];
-		a33 = jacobian [2, 2];
-
-		// We first find the determinant of the Jacobian
-		determinant = (a11 * ((a33 * a22) - (a32 * a23)))
-			- (a21 * ((a33 * a12) - (a32 * a13)))
-			+ (a31 * ((a23 * a12) - (a22 * a13)));
-
-		// We then calculate the adjacency matrix
-		adj [0, 0] = ((a33 * a22) - (a32 * a23));
-		adj [0, 1] = -((a33 * a12) - (a32 * a13));
-		adj [0, 2] = ((a23 * a12) - (a22 * a13));
-		adj [1, 0] = -((a33 * a21) - (a31 * a23));
-		adj [1, 1] = ((a33 * a11) - (a31 * a13));
-		adj [1, 2] = -((a23 * a11) - (a21 * a13));
-		adj [2, 0] = ((a32 * a21) - (a31 * a22));
-		adj [2, 1] = -((a32 * a11) - (a31 * a31));
-		adj [2, 2] = ((a22 * a11) - (a21 * a12));
-
-		// Now we calculate each cell of the inverse
-		inv [0, 0] = adj [0, 0] / determinant;
-		inv [0, 1] = adj [0, 0] / determinant;
-		inv [0, 2] = adj [0, 0] / determinant;
-		inv [1, 0] = adj [0, 0] / determinant;
-		inv [1, 1] = adj [0, 0] / determinant;
-		inv [1, 2] = adj [0, 0] / determinant;
-		inv [2, 0] = adj [0, 0] / determinant;
-		inv [2, 1] = adj [0, 0] / determinant;
-		inv [2, 2] = adj [0, 0] / determinant;
-		*/
-	}
-	
 	// Update is called once per frame
 	void Update () {
 
@@ -254,60 +180,6 @@ public class ShoulderMove : MonoBehaviour {
 
 			transform.rotation = Quaternion.Euler(xRot,yRot,zRot);
 			elbow.transform.rotation = Quaternion.Euler(elbowscript.xRot, elbowscript.yRot, elbowscript.zRot);
-
-			/*
-			if(doJacXTimes > 300){
-				done = true;
-			}
-			else {
-				doJacXTimes++;
-			}
-			*/
-
-		}
-	
-		// Manual Rotation Controls
-		if(Input.GetKey(KeyCode.A)) {
-			Debug.Log("Rotating Shoulder over X Positively");
-			Debug.Log(xRot);
-			xRot += rotSpeed;
-			xRot = Mathf.Clamp(xRot, xMin, xMax);
-			transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
-		}
-
-		if(Input.GetKey(KeyCode.S)) {
-			Debug.Log("Rotating Shoulder over Y Positively");
-			yRot += rotSpeed;
-			yRot = Mathf.Clamp(yRot, yMin, yMax);
-			transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
-		}
-
-		if(Input.GetKey(KeyCode.D)) {
-			Debug.Log("Rotating Shoulder over Z Positively");
-			zRot += rotSpeed;
-			zRot = Mathf.Clamp(zRot, zMin, zMax);
-			transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
-		}
-
-		if(Input.GetKey(KeyCode.Q)) {
-			Debug.Log("Rotating Shoulder over X Negatively");
-			xRot -= rotSpeed;
-			xRot = Mathf.Clamp(xRot, xMin, xMax);
-			transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
-		}
-		
-		if(Input.GetKey(KeyCode.W)) {
-			Debug.Log("Rotating Shoulder over Y Negatively");
-			yRot -= rotSpeed;
-			yRot = Mathf.Clamp(yRot, yMin, yMax);
-			transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
-		}
-		
-		if(Input.GetKey(KeyCode.E)) {
-			Debug.Log("Rotating Shoulder over Z Negatively");
-			zRot -= rotSpeed;
-			zRot = Mathf.Clamp(zRot, zMin, zMax);
-			transform.rotation = Quaternion.Euler(xRot, yRot, zRot);
 		}
 
 	}
