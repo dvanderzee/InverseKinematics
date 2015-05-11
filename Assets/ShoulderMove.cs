@@ -62,8 +62,6 @@ public class ShoulderMove : MonoBehaviour {
 
 		elbowObject = GameObject.Find ("Elbow");
 		elbowscript = elbowObject.GetComponent<ElbowScript> ();
-		Debug.Log ("shoulderpos: " + transform.position);
-		Debug.Log ("handpos: " + hand.transform.position);
 
 	}
 
@@ -153,7 +151,7 @@ public class ShoulderMove : MonoBehaviour {
 		//Have we reached our destination?
 		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
 			Debug.Log("target distance: " + Vector3.Distance (target.transform.position, hand.transform.position));
-			//done = true;
+			done = true;
 		}
 		
 		//Final calculation for DOF in joints
@@ -168,10 +166,7 @@ public class ShoulderMove : MonoBehaviour {
 		elbowscript.yRot += ((float)deltaTheta[5,1].Re * step);
 		elbowscript.zRot += ((float)deltaTheta[6,1].Re * step);
 
-		/*hand.Rotate (((float)deltaTheta [7, 1].Re * step), 
-		             ((float)deltaTheta [8, 1].Re * step), 
-		             ((float)deltaTheta [9, 1].Re * step),
-		             Space.Self); */
+
 	}
 
 	void leastSquares() {
@@ -206,14 +201,14 @@ public class ShoulderMove : MonoBehaviour {
 
 		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
 			Debug.Log("target distance: " + Vector3.Distance (target.transform.position, hand.transform.position));
-			//done = true;
+			done = true;
 		}
 	}
 
 	// Update is called once per frame
 	void Update () {
-
-		if(mode == 0) {
+		//traditional
+		if(mode == 0 && done == false) {
 			jacobianCalculation ();
 			pseudoInverse();
 			computeNewJoints();
@@ -224,28 +219,57 @@ public class ShoulderMove : MonoBehaviour {
 			zRot = Mathf.Clamp(zRot, zMin, zMax);
 
 			elbowscript.xRot = Mathf.Clamp(elbowscript.xRot, elbowscript.xMin, elbowscript.xMax);
-			elbowscript.yRot = Mathf.Clamp(elbowscript.yRot, elbowscript.yMin, elbowscript.yMax);
+			//elbowscript.yRot = Mathf.Clamp(elbowscript.yRot, elbowscript.yMin, elbowscript.yMax);
 			elbowscript.zRot = Mathf.Clamp(elbowscript.zRot, elbowscript.zMin, elbowscript.zMax);
-			*/
 
+			//Stop moving shoulder if elbow is at a limit
+			if(elbowscript.xRot <= elbowscript.xMin || elbowscript.xRot >= elbowscript.xMax) {
+				xRot = Mathf.Clamp(xRot, elbowscript.xMin, elbowscript.xMax);
+			}
+
+			if(elbowscript.yRot <= elbowscript.yMin || elbowscript.yRot >= elbowscript.yMax) {
+				yRot = Mathf.Clamp(yRot, elbowscript.yMin, elbowscript.yMax);
+			}
+
+			if(elbowscript.zRot <= elbowscript.zMin || elbowscript.zRot >= elbowscript.zMax) {
+				zRot = Mathf.Clamp(zRot, elbowscript.zMin, elbowscript.zMax);
+			}
+
+*/
 			transform.rotation = Quaternion.Euler(xRot,yRot,zRot);
 			elbow.transform.rotation = Quaternion.Euler(elbowscript.xRot, elbowscript.yRot, elbowscript.zRot);
+																			
 		}
-
-		if (mode == 1) {
+		//leastsquares method
+		if (mode == 1 && done == false) {
 			jacobianCalculation();
 			leastSquares();
 
+			/*
 			xRot = Mathf.Clamp(xRot, xMin, xMax);
 			yRot = Mathf.Clamp(yRot, yMin, yMax);
 			zRot = Mathf.Clamp(zRot, zMin, zMax);
-			
+
 			elbowscript.xRot = Mathf.Clamp(elbowscript.xRot, elbowscript.xMin, elbowscript.xMax);
-			elbowscript.yRot = Mathf.Clamp(elbowscript.yRot, elbowscript.yMin, elbowscript.yMax);
+			//elbowscript.yRot = Mathf.Clamp(elbowscript.transform.localRotation.y, elbowscript.yMin, elbowscript.yMax);
 			elbowscript.zRot = Mathf.Clamp(elbowscript.zRot, elbowscript.zMin, elbowscript.zMax);
 
+			//Stop moving shoulder if elbow is at a limit
+			if(elbowscript.xRot <= elbowscript.xMin || elbowscript.xRot >= elbowscript.xMax) {
+				elbowscript.xRot = xRot;
+			}
+			
+			if(elbowscript.yRot <= elbowscript.yMin || elbowscript.yRot >= elbowscript.yMax) {
+				elbowscript.yRot = yRot;
+			}
+			
+			if(elbowscript.zRot >= elbowscript.zMax || elbowscript.zRot <= elbowscript.zMin) {
+				elbowscript.zRot = zRot;
+			}
+*/
 			transform.rotation = Quaternion.Euler(xRot,yRot,zRot);
 			elbow.transform.rotation = Quaternion.Euler(elbowscript.xRot, elbowscript.yRot, elbowscript.zRot);
+																	//Used to be shoulder Y
 		}
 
 	}
