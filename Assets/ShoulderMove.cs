@@ -55,6 +55,8 @@ public class ShoulderMove : MonoBehaviour {
 
 	public float step;
 
+	public int mode = 1;
+
 	// Use this for initialization
 	void Start () {
 
@@ -172,10 +174,46 @@ public class ShoulderMove : MonoBehaviour {
 		             Space.Self); */
 	}
 
+	void leastSquares() {
+		int lambda = 4;
+		Matrix tp = jacobian.Transpose ();
+		Matrix id = new Matrix (6, 6);
+		for (int i = 1; i < 7; i++) {
+			id[i,i] = new Complex(lambda, 0);
+		}
+		Matrix toBeInverted = (tp * jacobian) + (id);
+		Matrix inv = toBeInverted.Inverse ();
+		Matrix sudo = inv * tp;
+
+		Vector3 deltaTranslation = target.transform.position - hand.transform.position;
+		//Convert to matrix
+		Matrix deltaE = new Matrix(3,1);
+		deltaE[1,1] = new Complex(System.Convert.ToDouble(deltaTranslation.x));
+		deltaE[2,1] = new Complex(System.Convert.ToDouble(deltaTranslation.y));
+		deltaE[3,1] = new Complex(System.Convert.ToDouble(deltaTranslation.z));
+
+		//Final calculation for DOF in joints
+		Matrix deltaTheta = sudo * deltaE;
+
+		//update joints
+		xRot += ((float)deltaTheta[1,1].Re * step);
+		yRot += ((float)deltaTheta[2,1].Re * step);
+		zRot += ((float)deltaTheta[3,1].Re * step);
+		
+		elbowscript.xRot += ((float)deltaTheta[4,1].Re * step);
+		elbowscript.yRot += ((float)deltaTheta[5,1].Re * step);
+		elbowscript.zRot += ((float)deltaTheta[6,1].Re * step);
+
+		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
+			Debug.Log("target distance: " + Vector3.Distance (target.transform.position, hand.transform.position));
+			//done = true;
+		}
+	}
+
 	// Update is called once per frame
 	void Update () {
 
-		if(done == false) {
+		if(mode == 0) {
 			jacobianCalculation ();
 			pseudoInverse();
 			computeNewJoints();
@@ -189,6 +227,22 @@ public class ShoulderMove : MonoBehaviour {
 			elbowscript.yRot = Mathf.Clamp(elbowscript.yRot, elbowscript.yMin, elbowscript.yMax);
 			elbowscript.zRot = Mathf.Clamp(elbowscript.zRot, elbowscript.zMin, elbowscript.zMax);
 			*/
+
+			transform.rotation = Quaternion.Euler(xRot,yRot,zRot);
+			elbow.transform.rotation = Quaternion.Euler(elbowscript.xRot, elbowscript.yRot, elbowscript.zRot);
+		}
+
+		if (mode == 1) {
+			jacobianCalculation();
+			leastSquares();
+
+			xRot = Mathf.Clamp(xRot, xMin, xMax);
+			yRot = Mathf.Clamp(yRot, yMin, yMax);
+			zRot = Mathf.Clamp(zRot, zMin, zMax);
+			
+			elbowscript.xRot = Mathf.Clamp(elbowscript.xRot, elbowscript.xMin, elbowscript.xMax);
+			elbowscript.yRot = Mathf.Clamp(elbowscript.yRot, elbowscript.yMin, elbowscript.yMax);
+			elbowscript.zRot = Mathf.Clamp(elbowscript.zRot, elbowscript.zMin, elbowscript.zMax);
 
 			transform.rotation = Quaternion.Euler(xRot,yRot,zRot);
 			elbow.transform.rotation = Quaternion.Euler(elbowscript.xRot, elbowscript.yRot, elbowscript.zRot);
