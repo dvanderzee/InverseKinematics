@@ -53,6 +53,9 @@ public class ShoulderMove : MonoBehaviour {
 	Vector3 elbowAxis;			// Axis of Revolution for Elbow
 	ElbowScript elbowscript;
 
+	//Bool if youre on shoulder or elbow joint for CCD
+	bool shoulderSelected = false;
+
 	public float step;
 
 	public int mode = 1;
@@ -200,9 +203,46 @@ public class ShoulderMove : MonoBehaviour {
 		elbowscript.zRot += ((float)deltaTheta[6,1].Re * step);
 
 		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
-			Debug.Log("target distance: " + Vector3.Distance (target.transform.position, hand.transform.position));
 			done = true;
 		}
+
+	}
+
+	//Does the inner work of CCD algorithm
+	void CCD(Transform joint) {
+
+		Vector3 jointToEnd = (joint.position - hand.transform.position);
+		Vector3 jointToTarget = (joint.position - target.transform.position);
+
+		//Get angle between end effector Vector and Target Vector
+		float angleBetween = Vector3.Dot (jointToTarget, jointToEnd);
+		float invCosAngle = Mathf.Acos(angleBetween);
+
+		//Get rotation direction
+		Vector3 rotationVec = Vector3.Cross(jointToTarget,jointToEnd);
+
+		//Apply differential roatation to current joint
+		joint.transform.rotation = Quaternion.AngleAxis(invCosAngle,rotationVec);
+
+		//Are we close enough?
+		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
+			done = true;
+		}
+		//recurse with next joint
+		else {
+
+			if(shoulderSelected == false){
+				shoulderSelected = !shoulderSelected;
+				CCD (elbow.transform);
+			}
+			else{
+				shoulderSelected = !shoulderSelected;
+				CCD(transform.transform);
+			}
+
+		}
+
+
 	}
 
 	// Update is called once per frame
@@ -271,6 +311,39 @@ public class ShoulderMove : MonoBehaviour {
 			elbow.transform.rotation = Quaternion.Euler(elbowscript.xRot, elbowscript.yRot, elbowscript.zRot);
 																	//Used to be shoulder Y
 		}
+		//CCD
+		if(mode == 3 && done == false) {
 
+			Transform joint;
+
+			if(shoulderSelected == true) {
+				joint = this.transform;
+			}
+			else {
+				joint = elbow.transform;
+			}
+
+			Vector3 jointToEnd = (joint.position - hand.transform.position);
+			Vector3 jointToTarget = (joint.position - target.transform.position);
+			
+			//Get angle between end effector Vector and Target Vector
+			float angleBetween = Vector3.Dot (jointToTarget, jointToEnd);
+			float invCosAngle = Mathf.Acos(angleBetween);
+
+			//Get rotation direction
+			Vector3 rotationVec = Vector3.Cross(jointToTarget,jointToEnd);
+			
+			//Apply differential roatation to current joint
+			joint.transform.Rotate(rotationVec,invCosAngle);
+			
+			//Are we close enough?
+			if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
+				done = true;
+			}
+			//recurse with next joint
+			else {
+				shoulderSelected = !shoulderSelected;
+			}
+		}
 	}
 }
