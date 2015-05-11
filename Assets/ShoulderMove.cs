@@ -202,7 +202,7 @@ public class ShoulderMove : MonoBehaviour {
 	}
 
 	float deter(float[,] a, int n) {
-		/*int i, j, k;
+		int i, j, k;
 		float det = 0;
 		for (i = 0; i < n - 1; i++)
 		{   
@@ -217,7 +217,7 @@ public class ShoulderMove : MonoBehaviour {
 		for (i = 0; i < n; i++)
 			det = det * a[i, i];
 		return det;
-		*/
+
 	}
 	
 	// Update is called once per frame
