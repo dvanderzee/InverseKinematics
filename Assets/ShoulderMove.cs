@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using CSML;
 
 public class ShoulderMove : MonoBehaviour {
 
@@ -26,8 +27,11 @@ public class ShoulderMove : MonoBehaviour {
 
 
 	// Matrices to hold our Jacobian Values and it's Adjacency Matrix
-	float[,] jacobian = new float[3, 6];
-	float[,] psuedo = new float[6, 3];
+	//float[,] jacobian = new float[3, 6];
+	//float[,] psuedo = new float[6, 3];
+
+	Matrix jacobian = new Matrix (3,6);
+	Matrix pseudoInv = new Matrix (6, 3);
 
 	// Speed at which objects are manually rotated
 	public float rotSpeed;
@@ -56,6 +60,9 @@ public class ShoulderMove : MonoBehaviour {
 
 		elbowObject = GameObject.Find ("Elbow");
 		elbowscript = elbowObject.GetComponent<ElbowScript> ();
+		
+		string buf = jacobian.ToString ();
+		Debug.Log (buf);
 
 	}
 
@@ -75,104 +82,69 @@ public class ShoulderMove : MonoBehaviour {
 		Vector3 elbowCol1 = Vector3.Cross (xAxis, elbowDist);
 		Vector3 elbowCol2 = Vector3.Cross (yAxis, elbowDist);
 		Vector3 elbowCol3 = Vector3.Cross (zAxis, elbowDist);
+		
+		jacobian[1,1] = new Complex(System.Convert.ToDouble(shoulderCol1.x), 0);
+		jacobian[1,2] = new Complex(System.Convert.ToDouble(shoulderCol2.x), 0);
+		jacobian[1,3] = new Complex(System.Convert.ToDouble(shoulderCol3.x), 0);
+		jacobian[1,4] = new Complex(System.Convert.ToDouble(elbowCol1.x), 0);
+		jacobian[1,5] = new Complex(System.Convert.ToDouble(elbowCol2.x), 0);
+		jacobian[1,6] = new Complex(System.Convert.ToDouble(elbowCol3.x), 0);
+		jacobian[2,1] = new Complex(System.Convert.ToDouble(shoulderCol1.y), 0);
+		jacobian[2,2] = new Complex(System.Convert.ToDouble(shoulderCol2.y), 0);
+		jacobian[2,3] = new Complex(System.Convert.ToDouble(shoulderCol3.y), 0);
+		jacobian[2,4] = new Complex(System.Convert.ToDouble(elbowCol1.y), 0);
+		jacobian[2,5] = new Complex(System.Convert.ToDouble(elbowCol2.y), 0);
+		jacobian[2,6] = new Complex(System.Convert.ToDouble(elbowCol3.y), 0);
+		jacobian[3,1] = new Complex(System.Convert.ToDouble(shoulderCol1.z), 0);
+		jacobian[3,2] = new Complex(System.Convert.ToDouble(shoulderCol2.z), 0);
+		jacobian[3,3] = new Complex(System.Convert.ToDouble(shoulderCol3.z), 0);
+		jacobian[3,4] = new Complex(System.Convert.ToDouble(elbowCol1.z), 0);
+		jacobian[3,5] = new Complex(System.Convert.ToDouble(elbowCol2.z), 0);
+		jacobian[3,6] = new Complex(System.Convert.ToDouble(elbowCol3.z), 0);
 
-		jacobian[0,0] = shoulderCol1.x;
-		jacobian[0,1] = shoulderCol2.x;
-		jacobian[0,2] = shoulderCol3.x;
-		jacobian[0,3] = elbowCol1.x;
-		jacobian[0,4] = elbowCol2.x;
-		jacobian[0,5] = elbowCol3.x;
-		jacobian[1,0] = shoulderCol1.y;
-		jacobian[1,1] = shoulderCol2.y;
-		jacobian[1,2] = shoulderCol3.y;
-		jacobian[1,3] = elbowCol1.y;
-		jacobian[1,4] = elbowCol2.y;
-		jacobian[1,5] = elbowCol3.y;
-		jacobian[2,0] = shoulderCol1.z;
-		jacobian[2,1] = shoulderCol2.z;
-		jacobian[2,2] = shoulderCol3.z;
-		jacobian[2,3] = elbowCol1.z;
-		jacobian[2,4] = elbowCol2.z;
-		jacobian[2,5] = elbowCol3.z;
+		string buf = jacobian.ToString ();
+		Debug.Log (buf);
 
+		/*
 		for (int i = 0; i < 3; i++) {
 			for (int j = 0; j < 6; j++) {
 				Debug.Log ("Jacobian: " + jacobian[i,j]);
 			}
 		}
+		*/
 		
 	}
+
 	// PsuedoInverse = Inverse(Transpose * Jacobian) * Transpose
 	void pseudoInverse() {
-		float[,] transpose = new float[6, 3];
-
-		//computes the transpose
-		transpose [0, 0] = jacobian [0, 0];
-		transpose [0, 1] = jacobian [1, 0];
-		transpose [0, 2] = jacobian [2, 0];
-		transpose [1, 0] = jacobian [0, 1];
-		transpose [1, 1] = jacobian [1, 1];
-		transpose [1, 2] = jacobian [2, 1];
-		transpose [2, 0] = jacobian [0, 2];
-		transpose [2, 1] = jacobian [1, 2];
-		transpose [2, 2] = jacobian [2, 2];
-		transpose [3, 0] = jacobian [0, 3];
-		transpose [3, 1] = jacobian [1, 3];
-		transpose [3, 2] = jacobian [2, 3];
-		transpose [4, 0] = jacobian [0, 4];
-		transpose [4, 1] = jacobian [1, 4];
-		transpose [4, 2] = jacobian [2, 4];
-		transpose [5, 0] = jacobian [0, 5];
-		transpose [5, 1] = jacobian [1, 5];
-		transpose [5, 2] = jacobian [2, 5];
-	
-		float[,] temp = new float[6, 6];
-		float[,] tempinv = new float[6, 6];
-
-		for (int row = 0; row < 6; row++) {
-			for (int col = 0; col < 6; col++) {
-				for (int inner = 0; inner < 3; inner++) {
-					temp [row, col] += transpose [row, inner] * jacobian [inner, col];
-				}
-			}
-		}
-
-		determinant = deter (temp, 6);
-
-		for (int i = 0; i < 6; i++) {
-			for (int j = 0; j < 6; j++) {
-				tempinv [i, j] = temp [j, i];
-			}
-		}
-
-		for (int i = 0; i < 6; i++) {
-			for(int j = 0; j < 6; j++) {
-				tempinv[i,j] = tempinv[i,j] / determinant;
-			}
-		}
-
-
-		// Calculating the PsuedoInverse
-		for (int row = 0; row < 6; row++) {
-			for (int col = 0; col < 3; col++) {
-				for (int inner = 0; inner < 6; inner++) {
-					psuedo[row,col] += tempinv[row,inner] * transpose[inner, col];
-				}
-			}
-		}
-
-
-		Debug.Log("Jacobian Inverse is:");
-		Debug.Log("Row 1: " + psuedo[0,0] + " " + psuedo[0,1] + " " + psuedo[0,2]);
-		Debug.Log("Row 2: " + psuedo[1,0] + " " + psuedo[1,1] + " " + psuedo[1,2]);
-
+		
+		//Compute transpose of jacobian
+		Matrix jacobianTran = jacobian.Transpose();
+		
+		//compute (Transpose * Jacobian)
+		Matrix temp = jacobianTran * jacobian;
+		
+		//Invert the square matrix
+		temp.Inverse();
+		
+		//Multiply inverse by Transpose to give you Psuedo Inverse
+		pseudoInv = temp * jacobianTran;	//NEEDS TO BE GLOBAL
+		
+		
 	}
 
 	//compute change in DOF for Joints.
 	// Delta Theta = 6x3Jacobian Inverse * 3x1deltaE
 	void computeNewJoints() {
 		
+		//deltaE is 3x1 of Vector to target from end effector
 		Vector3 deltaTranslation = target.transform.position - hand.transform.position;
+		
+		//Convert to matrix
+		Matrix deltaE = new Matrix(3,1);
+		deltaE[1,1] = new Complex(System.Convert.ToDouble(deltaTranslation.x));
+		deltaE[2,1] = new Complex(System.Convert.ToDouble(deltaTranslation.y));
+		deltaE[3,1] = new Complex(System.Convert.ToDouble(deltaTranslation.z));
 		
 		//Have we reached our destination?
 		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
@@ -180,46 +152,20 @@ public class ShoulderMove : MonoBehaviour {
 			done = true;
 		}
 		
-		//Compute change in DOF
-		float[,] deltaTheta = new float[6,1];
-		deltaTheta[0,0] = (psuedo[0,0] * deltaTranslation.x) + (psuedo[0,1] * deltaTranslation.y) + (psuedo[0,2] * deltaTranslation.z);
-		deltaTheta[1,0] = (psuedo[1,0] * deltaTranslation.x) + (psuedo[1,1] * deltaTranslation.y) + (psuedo[1,2] * deltaTranslation.z);
-		deltaTheta[2,0] = (psuedo[2,0] * deltaTranslation.x) + (psuedo[2,1] * deltaTranslation.y) + (psuedo[2,2] * deltaTranslation.z);
-		deltaTheta[3,0] = (psuedo[3,0] * deltaTranslation.x) + (psuedo[3,1] * deltaTranslation.y) + (psuedo[3,2] * deltaTranslation.z);
-		deltaTheta[4,0] = (psuedo[4,0] * deltaTranslation.x) + (psuedo[4,1] * deltaTranslation.y) + (psuedo[4,2] * deltaTranslation.z);
-		deltaTheta[5,0] = (psuedo[5,0] * deltaTranslation.x) + (psuedo[5,1] * deltaTranslation.y) + (psuedo[5,2] * deltaTranslation.z);
+		//Final calculation for DOF in joints
+		Matrix deltaTheta = pseudoInv * deltaE;
 		
+		//update joints
+		xRot += ((float)deltaTheta[1,1].Re * step);
+		yRot += ((float)deltaTheta[2,1].Re * step);
+		yRot += ((float)deltaTheta[3,1].Re * step);
 		
-		//update Joints
-		xRot += (deltaTheta[0,0] * step);
-		yRot += (deltaTheta[1,0] * step);
-		zRot += (deltaTheta[2,0] * step);
-		
-		elbowscript.xRot += (deltaTheta[3,0] * step);
-		elbowscript.yRot += (deltaTheta[4,0] * step);
-		elbowscript.zRot += (deltaTheta[5,0] * step);
+		elbowscript.xRot += ((float)deltaTheta[4,1].Re * step);
+		elbowscript.yRot += ((float)deltaTheta[5,1].Re * step);
+		elbowscript.zRot += ((float)deltaTheta[6,1].Re * step);
 		
 	}
 
-	float deter(float[,] a, int n) {
-		int i, j, k;
-		float det = 0;
-		for (i = 0; i < n - 1; i++)
-		{   
-			for (j = i + 1; j < n; j++)
-			{
-				det = a[j, i] / a[i, i];
-				for (k = i; k < n; k++)
-					a[j, k] = a[j, k] - det * a[i, k]; // Here's exception
-			}
-		}
-		det = 1;
-		for (i = 0; i < n; i++)
-			det = det * a[i, i];
-		return det;
-
-	}
-	
 	// Update is called once per frame
 	void Update () {
 
