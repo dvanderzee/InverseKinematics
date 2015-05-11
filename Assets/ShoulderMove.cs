@@ -60,9 +60,7 @@ public class ShoulderMove : MonoBehaviour {
 
 		elbowObject = GameObject.Find ("Elbow");
 		elbowscript = elbowObject.GetComponent<ElbowScript> ();
-		
-		string buf = jacobian.ToString ();
-		Debug.Log (buf);
+
 
 	}
 
@@ -102,16 +100,6 @@ public class ShoulderMove : MonoBehaviour {
 		jacobian[3,5] = new Complex(System.Convert.ToDouble(elbowCol2.z), 0);
 		jacobian[3,6] = new Complex(System.Convert.ToDouble(elbowCol3.z), 0);
 
-		string buf = jacobian.ToString ();
-		Debug.Log (buf);
-
-		/*
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 6; j++) {
-				Debug.Log ("Jacobian: " + jacobian[i,j]);
-			}
-		}
-		*/
 		
 	}
 
@@ -158,7 +146,7 @@ public class ShoulderMove : MonoBehaviour {
 		//update joints
 		xRot += ((float)deltaTheta[1,1].Re * step);
 		yRot += ((float)deltaTheta[2,1].Re * step);
-		yRot += ((float)deltaTheta[3,1].Re * step);
+		zRot += ((float)deltaTheta[3,1].Re * step);
 		
 		elbowscript.xRot += ((float)deltaTheta[4,1].Re * step);
 		elbowscript.yRot += ((float)deltaTheta[5,1].Re * step);
@@ -175,16 +163,14 @@ public class ShoulderMove : MonoBehaviour {
 			computeNewJoints();
 
 
-			//xRot = Mathf.Clamp(xRot, xMin, xMax);
-			//yRot = Mathf.Clamp(yRot, yMin, yMax);
-			//zRot = Mathf.Clamp(zRot, zMin, zMax);
+			xRot = Mathf.Clamp(xRot, xMin, xMax);
+			yRot = Mathf.Clamp(yRot, yMin, yMax);
+			zRot = Mathf.Clamp(zRot, zMin, zMax);
 
-			//elbowscript.xRot = Mathf.Clamp(elbowscript.xRot, elbowscript.xMin, elbowscript.xMax);
-			//elbowscript.yRot = Mathf.Clamp(elbowscript.yRot, elbowscript.yMin, elbowscript.yMax);
-			//elbowscript.zRot = Mathf.Clamp(elbowscript.zRot, elbowscript.zMin, elbowscript.zMax);
+			elbowscript.xRot = Mathf.Clamp(elbowscript.xRot, elbowscript.xMin, elbowscript.xMax);
+			elbowscript.yRot = Mathf.Clamp(elbowscript.yRot, elbowscript.yMin, elbowscript.yMax);
+			elbowscript.zRot = Mathf.Clamp(elbowscript.zRot, elbowscript.zMin, elbowscript.zMax);
 
-			Debug.Log("Shoulder Rotations: " + xRot + " " + yRot + " " + zRot);
-			Debug.Log("Elbow Rotations: " + elbowscript.xRot + " " + elbowscript.yRot + " " + elbowscript.zRot);
 
 			transform.rotation = Quaternion.Euler(xRot,yRot,zRot);
 			elbow.transform.rotation = Quaternion.Euler(elbowscript.xRot, elbowscript.yRot, elbowscript.zRot);
