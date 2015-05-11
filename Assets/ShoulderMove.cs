@@ -25,6 +25,10 @@ public class ShoulderMove : MonoBehaviour {
 	public Transform hand;
 	public Transform target;
 
+	// Transforms to reset joints
+	public Quaternion shoulderStart;
+	public Quaternion elbowStart;
+	public Quaternion handStart;
 
 	// Matrices to hold our Jacobian Values and it's Adjacency Matrix
 	//float[,] jacobian = new float[3, 6];
@@ -58,13 +62,19 @@ public class ShoulderMove : MonoBehaviour {
 
 	public float step;
 
-	public int mode = 1;
+	public int mode;
+	private string modeName;
 
 	// Use this for initialization
 	void Start () {
 
 		elbowObject = GameObject.Find ("Elbow");
 		elbowscript = elbowObject.GetComponent<ElbowScript> ();
+		modeName = "Jacobian Inverse";
+
+		shoulderStart = this.transform.rotation;
+		elbowStart = elbow.rotation;
+		handStart = hand.rotation;
 
 	}
 
@@ -173,7 +183,8 @@ public class ShoulderMove : MonoBehaviour {
 	}
 
 	void leastSquares() {
-		int lambda = 4;
+		int lambda = 16;
+		float leastSquaresStep = .5f;
 		Matrix tp = jacobian.Transpose ();
 		Matrix id = new Matrix (6, 6);
 		for (int i = 1; i < 7; i++) {
@@ -194,13 +205,13 @@ public class ShoulderMove : MonoBehaviour {
 		Matrix deltaTheta = sudo * deltaE;
 
 		//update joints
-		xRot += ((float)deltaTheta[1,1].Re * step);
-		yRot += ((float)deltaTheta[2,1].Re * step);
-		zRot += ((float)deltaTheta[3,1].Re * step);
+		xRot += ((float)deltaTheta[1,1].Re * leastSquaresStep);
+		yRot += ((float)deltaTheta[2,1].Re * leastSquaresStep);
+		zRot += ((float)deltaTheta[3,1].Re * leastSquaresStep);
 		
-		elbowscript.xRot += ((float)deltaTheta[4,1].Re * step);
-		elbowscript.yRot += ((float)deltaTheta[5,1].Re * step);
-		elbowscript.zRot += ((float)deltaTheta[6,1].Re * step);
+		elbowscript.xRot += ((float)deltaTheta[4,1].Re * leastSquaresStep);
+		elbowscript.yRot += ((float)deltaTheta[5,1].Re * leastSquaresStep);
+		elbowscript.zRot += ((float)deltaTheta[6,1].Re * leastSquaresStep);
 
 		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
 			done = true;
@@ -239,16 +250,38 @@ public class ShoulderMove : MonoBehaviour {
 				shoulderSelected = !shoulderSelected;
 				CCD(transform.transform);
 			}
-
 		}
+	}
 
-
+	void resetJoints () {
+		this.transform.rotation = shoulderStart;
+		elbow.rotation = elbowStart;
+		hand.rotation = handStart;
 	}
 
 	// Update is called once per frame
 	void Update () {
+
+		if(Input.GetKeyDown(KeyCode.UpArrow)) {
+			Debug.Log("Mode Change");
+			done = false;
+			mode++;
+			resetJoints();
+			if(mode > 3)
+				mode = 3;
+		}
+
+		if(Input.GetKeyDown(KeyCode.DownArrow)) {
+			Debug.Log("Mode Change");
+			done = false;
+			mode--;
+			resetJoints();
+			if(mode < 0)
+				mode = 0;
+		}
 		//traditional
 		if(mode == 0 && done == false) {
+			modeName = "Jacobian Inverse";
 			jacobianCalculation ();
 			pseudoInverse();
 			computeNewJoints();
@@ -282,6 +315,7 @@ public class ShoulderMove : MonoBehaviour {
 		}
 		//leastsquares method
 		if (mode == 1 && done == false) {
+			modeName = "Damped Least Squares";
 			jacobianCalculation();
 			leastSquares();
 
@@ -313,7 +347,7 @@ public class ShoulderMove : MonoBehaviour {
 		}
 		//CCD
 		if(mode == 3 && done == false) {
-
+			modeName = "Cyclic Coordinate Descent";
 			Transform joint;
 
 			if(shoulderSelected == true) {
@@ -353,5 +387,8 @@ public class ShoulderMove : MonoBehaviour {
 				shoulderSelected = !shoulderSelected;
 			}
 		}
+	}
+	void OnGUI() {
+		GUI.Label (new Rect (0, 0, Screen.width, Screen.height), modeName);
 	}
 }
