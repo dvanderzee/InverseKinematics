@@ -328,13 +328,21 @@ public class ShoulderMove : MonoBehaviour {
 			
 			//Get angle between end effector Vector and Target Vector
 			float angleBetween = Vector3.Dot (jointToTarget, jointToEnd);
-			float invCosAngle = Mathf.Acos(angleBetween);
+
+			//Convert to radians
+			float temp = Mathf.Deg2Rad * angleBetween;
+
+			float invCosAngle = Mathf.Acos(temp);
+
+			//Convert to degrees
+			invCosAngle = invCosAngle * Mathf.Rad2Deg;
+
 
 			//Get rotation direction
 			Vector3 rotationVec = Vector3.Cross(jointToTarget,jointToEnd);
-			
+
 			//Apply differential roatation to current joint
-			joint.transform.Rotate(rotationVec,invCosAngle);
+			joint.transform.Rotate(rotationVec,(step *invCosAngle));
 			
 			//Are we close enough?
 			if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
