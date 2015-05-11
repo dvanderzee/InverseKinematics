@@ -30,8 +30,8 @@ public class ShoulderMove : MonoBehaviour {
 	//float[,] jacobian = new float[3, 6];
 	//float[,] psuedo = new float[6, 3];
 
-	Matrix jacobian = new Matrix (3,6);
-	Matrix pseudoInv = new Matrix (6, 3);
+	Matrix jacobian = new Matrix (3, 9);
+	Matrix pseudoInv = new Matrix (9, 3);
 
 	// Speed at which objects are manually rotated
 	public float rotSpeed;
@@ -72,6 +72,7 @@ public class ShoulderMove : MonoBehaviour {
 
 		Vector3 shoulderDist = (hand.transform.position - transform.position);		// Vector from Shoulder to Hand
 		Vector3 elbowDist = (hand.transform.position - elbow.transform.position);	// Vector from Elbow to Hand
+		Vector3 endDist = (hand.transform.position);
 
 		Vector3 shoulderCol1 = Vector3.Cross (xAxis, shoulderDist);
 		Vector3 shoulderCol2 = Vector3.Cross (yAxis, shoulderDist);
@@ -80,6 +81,10 @@ public class ShoulderMove : MonoBehaviour {
 		Vector3 elbowCol1 = Vector3.Cross (xAxis, elbowDist);
 		Vector3 elbowCol2 = Vector3.Cross (yAxis, elbowDist);
 		Vector3 elbowCol3 = Vector3.Cross (zAxis, elbowDist);
+
+		Vector3 endCol1 = Vector3.Cross (xAxis, endDist);
+		Vector3 endCol2 = Vector3.Cross (yAxis, endDist);
+		Vector3 endCol3 = Vector3.Cross (zAxis, endDist);
 		
 		jacobian[1,1] = new Complex(System.Convert.ToDouble(shoulderCol1.x), 0);
 		jacobian[1,2] = new Complex(System.Convert.ToDouble(shoulderCol2.x), 0);
@@ -87,20 +92,27 @@ public class ShoulderMove : MonoBehaviour {
 		jacobian[1,4] = new Complex(System.Convert.ToDouble(elbowCol1.x), 0);
 		jacobian[1,5] = new Complex(System.Convert.ToDouble(elbowCol2.x), 0);
 		jacobian[1,6] = new Complex(System.Convert.ToDouble(elbowCol3.x), 0);
+		jacobian[1,7] = new Complex(System.Convert.ToDouble(endCol1.x), 0);
+		jacobian[1,8] = new Complex(System.Convert.ToDouble(endCol2.x), 0);
+		jacobian[1,9] = new Complex(System.Convert.ToDouble(endCol3.x), 0);
 		jacobian[2,1] = new Complex(System.Convert.ToDouble(shoulderCol1.y), 0);
 		jacobian[2,2] = new Complex(System.Convert.ToDouble(shoulderCol2.y), 0);
 		jacobian[2,3] = new Complex(System.Convert.ToDouble(shoulderCol3.y), 0);
 		jacobian[2,4] = new Complex(System.Convert.ToDouble(elbowCol1.y), 0);
 		jacobian[2,5] = new Complex(System.Convert.ToDouble(elbowCol2.y), 0);
 		jacobian[2,6] = new Complex(System.Convert.ToDouble(elbowCol3.y), 0);
+		jacobian[2,7] = new Complex(System.Convert.ToDouble(endCol1.y), 0);
+		jacobian[2,8] = new Complex(System.Convert.ToDouble(endCol2.y), 0);
+		jacobian[2,9] = new Complex(System.Convert.ToDouble(endCol3.y), 0);
 		jacobian[3,1] = new Complex(System.Convert.ToDouble(shoulderCol1.z), 0);
 		jacobian[3,2] = new Complex(System.Convert.ToDouble(shoulderCol2.z), 0);
 		jacobian[3,3] = new Complex(System.Convert.ToDouble(shoulderCol3.z), 0);
 		jacobian[3,4] = new Complex(System.Convert.ToDouble(elbowCol1.z), 0);
 		jacobian[3,5] = new Complex(System.Convert.ToDouble(elbowCol2.z), 0);
 		jacobian[3,6] = new Complex(System.Convert.ToDouble(elbowCol3.z), 0);
-
-		
+		jacobian[3,7] = new Complex(System.Convert.ToDouble(endCol1.z), 0);
+		jacobian[3,8] = new Complex(System.Convert.ToDouble(endCol2.z), 0);
+		jacobian[3,9] = new Complex(System.Convert.ToDouble(endCol3.z), 0);
 	}
 
 	// PsuedoInverse = Inverse(Transpose * Jacobian) * Transpose
@@ -137,7 +149,7 @@ public class ShoulderMove : MonoBehaviour {
 		//Have we reached our destination?
 		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
 			Debug.Log("target distance: " + Vector3.Distance (target.transform.position, hand.transform.position));
-			done = true;
+			//done = true;
 		}
 		
 		//Final calculation for DOF in joints
@@ -147,11 +159,15 @@ public class ShoulderMove : MonoBehaviour {
 		xRot += ((float)deltaTheta[1,1].Re * step);
 		yRot += ((float)deltaTheta[2,1].Re * step);
 		zRot += ((float)deltaTheta[3,1].Re * step);
-		
+
 		elbowscript.xRot += ((float)deltaTheta[4,1].Re * step);
 		elbowscript.yRot += ((float)deltaTheta[5,1].Re * step);
 		elbowscript.zRot += ((float)deltaTheta[6,1].Re * step);
-		
+
+		hand.Rotate (((float)deltaTheta [7, 1].Re * step), 
+		             ((float)deltaTheta [8, 1].Re * step), 
+		             ((float)deltaTheta [9, 1].Re * step),
+		             Space.World);
 	}
 
 	// Update is called once per frame
