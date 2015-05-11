@@ -94,6 +94,12 @@ public class ShoulderMove : MonoBehaviour {
 		jacobian[2,3] = elbowCol1.z;
 		jacobian[2,4] = elbowCol2.z;
 		jacobian[2,5] = elbowCol3.z;
+
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 6; j++) {
+				Debug.Log ("Jacobian: " + jacobian[i,j]);
+			}
+		}
 		
 	}
 	// PsuedoInverse = Inverse(Transpose * Jacobian) * Transpose
@@ -131,7 +137,7 @@ public class ShoulderMove : MonoBehaviour {
 			}
 		}
 
-		determinant = deter (6, temp);
+		determinant = deter (temp, 6);
 
 		for (int i = 0; i < 6; i++) {
 			for (int j = 0; j < 6; j++) {
@@ -194,49 +200,24 @@ public class ShoulderMove : MonoBehaviour {
 		elbowscript.zRot += (deltaTheta[5,0] * step);
 		
 	}
-	/*
-	void computeNewJoints() {
-		Vector3 deltaTranslation = target.transform.position - hand.transform.position;
-		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
-			Debug.Log("target distance: " + Vector3.Distance (target.transform.position, hand.transform.position));
-			done = true;
-		}
 
-		// Change in DOF
-		float[,] deltaTheta = new float[2, 1];
-		deltaTheta [0, 0] = (psuedo [0, 0] * deltaTranslation.x) + (psuedo [0, 1] * deltaTranslation.y) + (psuedo [0, 2] * deltaTranslation.z);
-		deltaTheta [1, 0] = (psuedo [1, 0] * deltaTranslation.x) + (psuedo [1, 1] * deltaTranslation.y) + (psuedo [1, 2] * deltaTranslation.z);
-	
-		xRot += (deltaTheta [0, 0] * step);
-		yRot += (deltaTheta [0, 0] * step);
-		zRot += (deltaTheta [0, 0] * step);
-
-		elbowscript.xRot += (deltaTheta [1, 0] * step);
-		elbowscript.yRot += (deltaTheta [1, 0] * step);
-		elbowscript.zRot += (deltaTheta [1, 0] * step);
-	}
-	*/
-
-	float deter(int n, float[,] sup) {
-		int c, subi, i, j, subj;
-		float[,] submat = new float[10, 10];
-
-		for (c = 0; c < n; c++) {
-			subi = 0;
-			for (i = 1; i<n; i++) {
-				subj = 0;
-				for (j = 0; j < n; j++) {
-					if (j == c) {
-						continue;
-					}
-					submat [subi, subj] = sup [i, j];
-					subj++;
-				}
-				subi++;
+	float deter(float[,] a, int n) {
+		/*int i, j, k;
+		float det = 0;
+		for (i = 0; i < n - 1; i++)
+		{   
+			for (j = i + 1; j < n; j++)
+			{
+				det = a[j, i] / a[i, i];
+				for (k = i; k < n; k++)
+					a[j, k] = a[j, k] - det * a[i, k]; // Here's exception
 			}
-			determinant = determinant + (Mathf.Pow (-1, c) * sup [0, c] * deter (n - 1, submat));
 		}
-		return determinant;
+		det = 1;
+		for (i = 0; i < n; i++)
+			det = det * a[i, i];
+		return det;
+		*/
 	}
 	
 	// Update is called once per frame
@@ -244,8 +225,8 @@ public class ShoulderMove : MonoBehaviour {
 
 		if(done == false) {
 			jacobianCalculation ();
-			//pseudoInverse();
-			//computeNewJoints();
+			pseudoInverse();
+			computeNewJoints();
 
 
 			//xRot = Mathf.Clamp(xRot, xMin, xMax);
