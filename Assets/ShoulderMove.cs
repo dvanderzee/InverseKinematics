@@ -29,6 +29,9 @@ public class ShoulderMove : MonoBehaviour {
 	public Quaternion shoulderStart;
 	public Quaternion elbowStart;
 	public Quaternion handStart;
+	public Vector3 shoulderTrans;
+	public Vector3 elbowTrans;
+	public Vector3 handTrans;
 
 	// Matrices to hold our Jacobian Values and it's Adjacency Matrix
 	//float[,] jacobian = new float[3, 6];
@@ -59,6 +62,8 @@ public class ShoulderMove : MonoBehaviour {
 
 	//Bool if youre on shoulder or elbow joint for CCD
 	bool shoulderSelected = false;
+	//bool for if joints have been reset
+	bool jointsReset = true;
 
 	public float step;
 
@@ -75,6 +80,9 @@ public class ShoulderMove : MonoBehaviour {
 		shoulderStart = this.transform.rotation;
 		elbowStart = elbow.rotation;
 		handStart = hand.rotation;
+		shoulderTrans = this.transform.position;
+		elbowTrans = elbow.transform.position;
+		handTrans = hand.transform.position;
 
 	}
 
@@ -163,7 +171,6 @@ public class ShoulderMove : MonoBehaviour {
 		
 		//Have we reached our destination?
 		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
-			Debug.Log("target distance: " + Vector3.Distance (target.transform.position, hand.transform.position));
 			done = true;
 		}
 		
@@ -219,44 +226,25 @@ public class ShoulderMove : MonoBehaviour {
 
 	}
 
-	//Does the inner work of CCD algorithm
-	void CCD(Transform joint) {
-
-		Vector3 jointToEnd = (joint.position - hand.transform.position);
-		Vector3 jointToTarget = (joint.position - target.transform.position);
-
-		//Get angle between end effector Vector and Target Vector
-		float angleBetween = Vector3.Dot (jointToTarget, jointToEnd);
-		float invCosAngle = Mathf.Acos(angleBetween);
-
-		//Get rotation direction
-		Vector3 rotationVec = Vector3.Cross(jointToTarget,jointToEnd);
-
-		//Apply differential roatation to current joint
-		joint.transform.rotation = Quaternion.AngleAxis(invCosAngle,rotationVec);
-
-		//Are we close enough?
-		if (Vector3.Distance (target.transform.position, hand.transform.position) < minDistance) {
-			done = true;
-		}
-		//recurse with next joint
-		else {
-
-			if(shoulderSelected == false){
-				shoulderSelected = !shoulderSelected;
-				CCD (elbow.transform);
-			}
-			else{
-				shoulderSelected = !shoulderSelected;
-				CCD(transform.transform);
-			}
-		}
-	}
-
 	void resetJoints () {
+		Debug.Log ("resetting");
 		this.transform.rotation = shoulderStart;
 		elbow.rotation = elbowStart;
 		hand.rotation = handStart;
+		this.transform.position = shoulderTrans;
+		elbow.transform.position = elbowTrans;
+		hand.transform.position = handTrans;
+
+		jacobian = new Matrix(3,6);
+		pseudoInv = new Matrix (6, 3);
+
+		xRot = 1;
+		yRot = 2;
+		zRot = 3;
+		elbowscript.xRot = 1;
+		elbowscript.yRot = 2;
+		elbowscript.zRot = 3;
+		//jointsReset = true;
 	}
 
 	// Update is called once per frame
@@ -265,23 +253,32 @@ public class ShoulderMove : MonoBehaviour {
 		if(Input.GetKeyDown(KeyCode.UpArrow)) {
 			Debug.Log("Mode Change");
 			done = false;
+			jointsReset = false;
 			mode++;
+			if(mode > 2)
+				mode = 0;
 			resetJoints();
-			if(mode > 3)
-				mode = 3;
+
 		}
 
 		if(Input.GetKeyDown(KeyCode.DownArrow)) {
 			Debug.Log("Mode Change");
 			done = false;
+			jointsReset = false;
 			mode--;
-			resetJoints();
 			if(mode < 0)
-				mode = 0;
+				mode = 2;
+			resetJoints();
+
+		}
+
+		if(Input.GetKeyDown(KeyCode.I)) {
+			jointsReset = true;
 		}
 		//traditional
-		if(mode == 0 && done == false) {
+		if(mode == 0 && done == false && jointsReset ==true) {
 			modeName = "Jacobian Inverse";
+
 			jacobianCalculation ();
 			pseudoInverse();
 			computeNewJoints();
@@ -314,7 +311,8 @@ public class ShoulderMove : MonoBehaviour {
 																			
 		}
 		//leastsquares method
-		if (mode == 1 && done == false) {
+		if (mode == 1 && done == false && jointsReset == true) {
+			Debug.Log ("damp");
 			modeName = "Damped Least Squares";
 			jacobianCalculation();
 			leastSquares();
@@ -346,7 +344,7 @@ public class ShoulderMove : MonoBehaviour {
 																	//Used to be shoulder Y
 		}
 		//CCD
-		if(mode == 3 && done == false) {
+		if(mode == 2 && done == false && jointsReset == true) {
 			modeName = "Cyclic Coordinate Descent";
 			Transform joint;
 
@@ -389,6 +387,8 @@ public class ShoulderMove : MonoBehaviour {
 		}
 	}
 	void OnGUI() {
+		GUI.color = Color.black;
 		GUI.Label (new Rect (0, 0, Screen.width, Screen.height), modeName);
+
 	}
 }
